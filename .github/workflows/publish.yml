@@ -35,6 +35,8 @@ jobs:
           dotnet pack src/FadiPhor.Result.Serialization.Json/FadiPhor.Result.Serialization.Json.csproj --configuration Release --no-build -o ./artifacts
 
       - name: Publish to NuGet
-        run: dotnet nuget push ./artifacts/*.nupkg \
-              --api-key ${{ secrets.NUGET_API_KEY }} \
-              --source https://api.nuget.org/v3/index.json
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json
+
