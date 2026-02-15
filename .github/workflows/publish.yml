@@ -9,6 +9,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,7 +30,9 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Pack
-        run: dotnet pack --configuration Release --no-build -o ./artifacts
+        run: |
+          dotnet pack src/FadiPhor.Result/FadiPhor.Result.csproj --configuration Release --no-build -o ./artifacts
+          dotnet pack src/FadiPhor.Result.Serialization.Json/FadiPhor.Result.Serialization.Json.csproj --configuration Release --no-build -o ./artifacts
 
       - name: Publish to NuGet
         run: dotnet nuget push ./artifacts/*.nupkg \
