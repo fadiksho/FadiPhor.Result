@@ -37,7 +37,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!--<SymbolPackageFormat>snupkg</SymbolPackageFormat>-->
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
