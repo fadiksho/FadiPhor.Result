@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FadiPhor.Result.Serialization.Json</PackageId>
+    <Description>
+      System.Text.Json serialization support for FadiPhor.Result, including discriminated union handling and polymorphic error serialization.
+    </Description>
+
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>$(PackageTags) result json system.text.json serialization</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FadiPhor.Result\FadiPhor.Result.csproj" />
+  </ItemGroup>
+  
+</Project>

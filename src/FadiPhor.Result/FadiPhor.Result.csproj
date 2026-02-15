@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FadiPhor.Result</PackageId>
+    <Description>
+      A lightweight, union-based Result&lt;T&gt; abstraction for explicit, type-safe error handling in .NET applications without exception-driven business flow.
+    </Description>
+
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>$(PackageTags) result functional error-handling</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  
+</Project>

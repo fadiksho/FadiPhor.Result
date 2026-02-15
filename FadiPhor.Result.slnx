@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/.github/" />
+  <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/ci.yaml" />
+    <File Path=".github/workflows/publish.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FadiPhor.Result.Serialization.Json/FadiPhor.Result.Serialization.Json.csproj" />
+    <Project Path="src/FadiPhor.Result/FadiPhor.Result.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FadiPhor.Result.Serialization.Json.Tests/FadiPhor.Result.Serialization.Json.Tests.csproj" />
+    <Project Path="tests/FadiPhor.Result.Tests/FadiPhor.Result.Tests.csproj" />
+  </Folder>
+</Solution>
