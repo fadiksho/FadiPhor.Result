@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using FadiPhor.Result.Serialization.Json;
 
 namespace FadiPhor.Result.Serialization.Json.Tests;
 
@@ -32,7 +31,7 @@ public class ValidationSerializationTests
     Assert.Contains("\"message\":\"Validation failed.\"", json);
     Assert.Contains("\"issues\":", json);
     Assert.Contains("\"identifier\":\"Email\"", json);
-    
+
     // Assert - verify deserialization
     Assert.NotNull(deserialized);
     Assert.IsType<Failure<int>>(deserialized);
@@ -67,11 +66,11 @@ public class ValidationSerializationTests
     // Assert - both core and custom errors should serialize
     Assert.Contains("\"$type\":\"CustomTestError\"", customJson);
     Assert.Contains("\"$type\":\"ValidationFailure\"", validationJson);
-    
+
     // Verify deserialization works for both
     var deserializedCustom = JsonSerializer.Deserialize<Result<int>>(customJson, options);
     var deserializedValidation = JsonSerializer.Deserialize<Result<string>>(validationJson, options);
-    
+
     Assert.NotNull(deserializedCustom);
     Assert.NotNull(deserializedValidation);
     Assert.IsType<Failure<int>>(deserializedCustom);

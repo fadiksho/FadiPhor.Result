@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using FadiPhor.Result;
 
 namespace FadiPhor.Result.Serialization.Json;
 
@@ -28,7 +27,7 @@ internal sealed class DefaultErrorPolymorphicResolver : IErrorPolymorphicResolve
     {
       // Add core types to existing derived types
       var existingTypes = typeInfo.PolymorphismOptions.DerivedTypes.ToList();
-      
+
       // Only add core types if they're not already registered
       if (!existingTypes.Any(dt => dt.DerivedType == typeof(ValidationFailure)))
       {

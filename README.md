@@ -3,89 +3,80 @@
 [![Publish](https://github.com/fadiksho/FadiPhor.Result/actions/workflows/publish.yml/badge.svg)](https://github.com/fadiksho/FadiPhor.Result/actions/workflows/publish.yml)
 [![NuGet](https://img.shields.io/nuget/v/FadiPhor.Result.svg)](https://www.nuget.org/packages/FadiPhor.Result)
 
+This repository contains two packages:
 
-A cohesive Result abstraction ecosystem for explicit, type-safe error handling in modern .NET applications.
+| Package | Purpose |
+|---|---|
+| [`FadiPhor.Result`](src/FadiPhor.Result/README.md) | Core `Result<T>` type — union of `Success<T>` and `Failure<T>`, composition operators, validation types. No infrastructure dependencies. |
+| [`FadiPhor.Result.Serialization.Json`](src/FadiPhor.Result.Serialization.Json/README.md) | `System.Text.Json` converters for `Result<T>` with polymorphic `Error` serialization. Depends on the core package. |
 
-This repository contains the core `Result<T>` implementation and its official System.Text.Json serialization support.
-All packages in this repository share the same version wave and evolve together.
+Both packages share the same semantic version, driven by Git tags.
 
 ---
 
-## Packages
+## End-to-End Example
 
-### 📦 FadiPhor.Result
+Define a domain error and a method that returns `Result<T>`:
 
-Foundational `Result<T>` abstraction for modeling success and failure without exception-driven control flow.
+```csharp
+public record NotFoundError(string EntityId) : Error("not_found")
+{
+    public override string? Message => $"{EntityId} not found";
+}
 
-- Union-based design (`Success<T>` / `Failure<T>`)
-- Explicit error modeling via `Error`
-- Railway-oriented composition with `Bind`
-- Built-in validation support (`ValidationFailure`)
-- Transport-agnostic core
+public Result<User> GetUser(int id)
+{
+    var user = repository.Find(id);
+    if (user is null)
+        return new NotFoundError($"user/{id}");
 
-➡ See full documentation:
-[Core package documentation](src/FadiPhor.Result/README.md)
+    return user; // implicit conversion to Success<User>
+}
+```
 
-Install:
+Compose and match at the boundary:
 
-```bash
-dotnet add package FadiPhor.Result
+```csharp
+var result = GetUser(request.Id)
+    .Ensure(u => u.IsActive, () => new Error("user.inactive"))
+    .Bind(u => MapToDto(u));
+
+return result.Match(
+    onSuccess: dto => Ok(dto),
+    onFailure: error => error switch
+    {
+        NotFoundError => NotFound(),
+        _ => Problem(detail: error.Code)
+    }
+);
 ```
 
 ---
 
-### 📦 FadiPhor.Result.Serialization.Json
+## Dependency Direction
 
-System.Text.Json support for `Result<T>`.
-
-- Discriminated union JSON format (`kind`)
-- Polymorphic error serialization
-- Core error types auto-registered
-- Extensible via `IErrorPolymorphicResolver`
-
-➡ See full documentation:
-[Serialization package documentation](src/FadiPhor.Result.Serialization.Json/README.md)
-
-Install:
-
-```bash
-dotnet add package FadiPhor.Result.Serialization.Json
 ```
+FadiPhor.Result                       (core — no serialization dependency)
+    ▲
+    │
+FadiPhor.Result.Serialization.Json    (infrastructure adapter)
+```
+
+The core package is transport-agnostic. Serialization depends on core, never the reverse.
 
 ---
 
-## Design Principles
+## Union Structure
 
-- Explicit success/failure modeling
-- No exception-based business flow
-- Immutable, structurally sound types
-- Clear separation between core and infrastructure
-- Unified versioning across packages
+`Result<T>` is currently a binary union: `Success<T>` or `Failure<T>`. Both are sealed.
 
----
+The design allows introducing additional union states (e.g. `PartialSuccess<T>`) if needed. Adding a new state requires changes to:
 
-## Architecture
-
-```
-FadiPhor.Result/
-├── FadiPhor.Result                 (Core)
-└── FadiPhor.Result.Serialization.Json  (Infrastructure adapter)
-```
-
-Core has no serialization dependency.
-Serialization depends on core — never the reverse.
-
----
-
-## Versioning
-
-All packages in this repository share the same semantic version.
-Releases are driven by Git tags.
+- The core model and all `switch` expressions over `Result<T>`.
+- Any infrastructure that depends on the union shape, including the JSON converter.
 
 ---
 
 ## License
 
 MIT
-
----
