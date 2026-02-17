@@ -55,8 +55,6 @@ public class CoreTests
     Assert.Throws<ArgumentNullException>(() => new Failure<int>(null!));
   }
 
-
-
   [Fact]
   public void Bind_ChainMultipleOperations()
   {

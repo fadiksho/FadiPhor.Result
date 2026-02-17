@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization.Metadata;
-using FadiPhor.Result;
 
 namespace FadiPhor.Result.Serialization.Json;
 

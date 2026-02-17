@@ -1,89 +1,123 @@
 # FadiPhor.Result.Serialization.Json
 
-System.Text.Json serialization support for `FadiPhor.Result`.
-
-## Overview
-
-This library provides JSON serialization and deserialization for `Result<T>` types using `System.Text.Json`. It is separated from the core `FadiPhor.Result` library to maintain transport independence and allow the core library to remain free of serialization dependencies.
-
-**Key Features:**
-
-- **Seamless Result<T> serialization** - Custom converters handle Success and Failure cases
-- **Polymorphic error support** - Serialize and deserialize custom error types
-- **Core errors auto-registered** - ValidationFailure and other core error types work out of the box
-- **Extensible** - Register custom error types with IErrorPolymorphicResolver
-- **Clean JSON format** - Uses discriminated union pattern with "kind" property
+`System.Text.Json` converters for `Result<T>` with polymorphic `Error` support.
 
 ---
 
-## Installation
+## Registration
 
-```bash
-dotnet add package FadiPhor.Result
-dotnet add package FadiPhor.Result.Serialization.Json
+```csharp
+using FadiPhor.Result.Serialization.Json;
+
+var options = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+};
+
+// No custom errors — core types (ValidationFailure) are registered automatically.
+options.AddResultSerialization();
+
+// With custom error types:
+options.AddResultSerialization(new MyErrorResolver());
+
+// Multiple resolvers:
+options.AddResultSerialization(new DomainErrorResolver(), new AuthErrorResolver());
+```
+
+If a `TypeInfoResolver` is already set on the options, `AddResultSerialization` preserves it and combines both.
+
+---
+
+## JSON Contract
+
+### Success
+
+```json
+{
+  "kind": "Success",
+  "value": { "id": 1, "name": "Alice" }
+}
+```
+
+Property order is fixed: `kind` first, then `value`.
+
+### Failure (plain error)
+
+```json
+{
+  "kind": "Failure",
+  "error": {
+    "$type": "NotFoundError",
+    "code": "not_found",
+    "message": "user/42 not found",
+    "entityId": "user/42"
+  }
+}
+```
+
+Property order: `kind` first, then `error`. The `$type` discriminator identifies the `Error` subtype.
+
+### Failure (ValidationFailure)
+
+```json
+{
+  "kind": "Failure",
+  "error": {
+    "$type": "ValidationFailure",
+    "code": "validation.failed",
+    "message": "Validation failed.",
+    "issues": [
+      {
+        "identifier": "Email",
+        "message": "Email is required",
+        "severity": 0
+      },
+      {
+        "identifier": "Age",
+        "message": "Must be 18 or older",
+        "severity": 0
+      }
+    ]
+  }
+}
+```
+
+`ValidationFailure` is registered automatically. No resolver needed.
+
+### Success with Unit
+
+```json
+{
+  "kind": "Success",
+  "value": {}
+}
 ```
 
 ---
 
-## Quick Start
+## Polymorphic Error Resolution
 
-### Basic Usage
+Errors are serialized through `System.Text.Json` polymorphism. The discriminator property is `$type`. Each `Error` subtype must be registered with a resolver.
 
-Core error types like `ValidationFailure` are automatically registered and work without any configuration:
+### Default behavior
 
-```csharp
-using System.Text.Json;
-using FadiPhor.Result;
-using FadiPhor.Result.Serialization.Json;
+`AddResultSerialization` automatically registers `ValidationFailure`. You do not need to include it in your resolver.
 
-// Configure JSON options
-var options = new JsonSerializerOptions()
-    .AddResultSerialization();
+### Custom errors
 
-// Serialize a successful result
-var successResult = Result.Success(42);
-var json = JsonSerializer.Serialize(successResult, options);
-// Output: {"kind":"Success","value":42}
-
-// Serialize a validation failure (core error - no resolver needed)
-var validationFailure = new ValidationFailure(new[]
-{
-    new ValidationIssue("Email", "Email is required"),
-    new ValidationIssue("Password", "Password must be at least 8 characters")
-});
-var failureResult = Result.Failure<User>(validationFailure);
-var failureJson = JsonSerializer.Serialize(failureResult, options);
-
-// Deserialize
-var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
-```
-
----
-
-## Custom Error Types
-
-### Registering Custom Errors
-
-To serialize custom error types, implement `IErrorPolymorphicResolver`:
+Define your error types and implement `IErrorPolymorphicResolver`:
 
 ```csharp
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-using FadiPhor.Result;
-using FadiPhor.Result.Serialization.Json;
-
-// Define custom error types
-public record NotFoundError(string Code, string EntityId) : Error(Code)
+public record NotFoundError(string EntityId) : Error("not_found")
 {
-    public override string? Message => $"Entity {EntityId} not found";
+    public override string? Message => $"{EntityId} not found";
 }
 
-public record UnauthorizedError(string Code) : Error(Code)
+public record ConflictError(string Reason) : Error("conflict")
 {
-    public override string? Message => "Access denied";
+    public override string? Message => Reason;
 }
 
-// Create a resolver for your custom error types
 public class MyErrorResolver : IErrorPolymorphicResolver
 {
     public void ResolveDerivedType(JsonTypeInfo typeInfo)
@@ -98,132 +132,55 @@ public class MyErrorResolver : IErrorPolymorphicResolver
             UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
             DerivedTypes =
             {
-                new JsonDerivedType(typeof(NotFoundError), "NotFoundError"),
-                new JsonDerivedType(typeof(UnauthorizedError), "UnauthorizedError")
+                new JsonDerivedType(typeof(NotFoundError), nameof(NotFoundError)),
+                new JsonDerivedType(typeof(ConflictError), nameof(ConflictError))
             }
         };
     }
 }
+```
 
-// Register the resolver
+Register the resolver:
+
+```csharp
 var options = new JsonSerializerOptions()
     .AddResultSerialization(new MyErrorResolver());
 ```
 
-**Important:** You do NOT need to register core error types like `ValidationFailure` - they are automatically included.
+The default resolver merges `ValidationFailure` into whatever your resolver provides. Custom resolvers run first.
 
 ---
 
-## JSON Format
-
-### Success Result
-
-```json
-{
-  "kind": "Success",
-  "value": 42
-}
-```
-
-### Failure Result
-
-```json
-{
-  "kind": "Failure",
-  "error": {
-    "$type": "ValidationFailure",
-    "code": "validation.failed",
-    "message": "Validation failed.",
-    "issues": [
-      {
-        "propertyName": "Email",
-        "errorMessage": "Email is required",
-        "severity": 0
-      }
-    ]
-  }
-}
-```
-
-### Custom Error Result
-
-```json
-{
-  "kind": "Failure",
-  "error": {
-    "$type": "NotFoundError",
-    "code": "user.not_found",
-    "message": "Entity user-123 not found",
-    "entityId": "user-123"
-  }
-}
-```
-
----
-
-## Core Error Types
-
-The following core error types are **automatically registered** and require no configuration:
-
-- **ValidationFailure** - Contains a collection of validation issues
-
-Future core error types will also be registered automatically.
-
----
-
-## Configuration Options
-
-### Multiple Resolvers
-
-You can register multiple custom error resolvers:
-
-```csharp
-var options = new JsonSerializerOptions()
-    .AddResultSerialization(
-        new MyDomainErrorResolver(),
-        new MyApplicationErrorResolver()
-    );
-```
-
-### Preserving Existing Resolvers
-
-`AddResultSerialization` preserves any existing `TypeInfoResolver` in your options and combines them:
+## Round-Trip Example
 
 ```csharp
 var options = new JsonSerializerOptions
 {
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    TypeInfoResolver = new DefaultJsonTypeInfoResolver() // Your existing resolver
-};
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+}.AddResultSerialization(new MyErrorResolver());
 
-options.AddResultSerialization(new MyErrorResolver());
-// Both resolvers are now active
+// Serialize
+Result<int> result = Result.Success(42);
+var json = JsonSerializer.Serialize(result, options);
+// {"kind":"Success","value":42}
+
+// Deserialize
+var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
+// deserialized is Success<int> { Value = 42 }
+
+// Failure round-trip
+Result<int> failure = new NotFoundError("item/7");
+var failureJson = JsonSerializer.Serialize(failure, options);
+// {"kind":"Failure","error":{"$type":"NotFoundError","code":"not_found","message":"item/7 not found","entityId":"item/7"}}
+
+var restored = JsonSerializer.Deserialize<Result<int>>(failureJson, options);
+// restored is Failure<int> { Error = NotFoundError { EntityId = "item/7" } }
 ```
 
 ---
 
-## Architecture
+## Structural Notes
 
-This library follows clean architecture principles:
-
-- **Core library** (`FadiPhor.Result`) - Domain types, no infrastructure dependencies
-- **Serialization library** (this library) - Infrastructure adapter for System.Text.Json
-- **Dependency direction** - Serialization depends on Core, never the reverse
-
-This separation allows:
-- Core library to remain transport-agnostic
-- Future support for other serialization formats (e.g., Newtonsoft.Json, MessagePack)
-- Easier testing and maintenance
-- Smaller core library footprint
-
----
-
-## Source Generator Compatibility
-
-The resolver pattern is compatible with System.Text.Json source generators for AOT and trimming scenarios. Use resolvers within a custom `JsonSerializerContext` for optimal performance.
-
----
-
-## License
-
-This library is part of the FadiPhor.Result project. See the main repository for license information.
+- The JSON shape reflects the current binary union (`Success` / `Failure`). If new union states are added to the core, the converter must be updated to handle them.
+- Changes to property names (`kind`, `value`, `error`, `$type`) or structure are contract-breaking.
+- Deserialization is strict: missing `kind`, unknown `kind` values, or missing `value`/`error` properties throw `JsonException`.

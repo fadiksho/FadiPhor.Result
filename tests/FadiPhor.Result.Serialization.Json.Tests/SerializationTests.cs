@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using FadiPhor.Result.Serialization.Json;
 
 namespace FadiPhor.Result.Serialization.Json.Tests;
 
@@ -82,7 +81,7 @@ public class SerializationTests
     // Assert - verify JSON structure
     Assert.Contains("\"kind\":\"Success\"", json);
     Assert.Contains("\"value\":\"Hello, World!\"", json);
-    
+
     // Assert - verify deserialization
     Assert.NotNull(deserialized);
     Assert.IsType<Success<string>>(deserialized);
@@ -106,7 +105,7 @@ public class SerializationTests
     Assert.Contains("\"error\":", json);
     Assert.Contains("\"$type\":\"TestError\"", json);
     Assert.Contains("\"code\":\"validation.failed\"", json);
-    
+
     // Assert - verify deserialization
     Assert.NotNull(deserialized);
     Assert.IsType<Failure<string>>(deserialized);
@@ -236,7 +235,7 @@ public class SerializationTests
     // Assert - verify JSON structure
     Assert.Contains("\"kind\":\"Success\"", json);
     Assert.Contains("\"value\":{}", json);
-    
+
     // Assert - verify deserialization
     Assert.NotNull(deserialized);
     Assert.IsType<Success<Unit>>(deserialized);
