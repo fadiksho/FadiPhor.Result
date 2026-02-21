@@ -7,6 +7,8 @@
 
 All types are records (immutable). `T` is constrained to `notnull`.
 
+**Base Type**: All `Result<T>` types inherit from a non-generic abstract `Result` base that exposes `IsSuccess` and `IsFailure` properties. This enables middleware and infrastructure code to operate on results without knowing their generic payload type.
+
 ---
 
 ## Error Model
@@ -86,11 +88,11 @@ Both conversions throw `ArgumentNullException` if given `null`.
 
 ### Factory Methods
 
-When implicit conversion is not applicable (e.g. in generic contexts):
+When implicit conversion is not applicable (e.g. in generic contexts), use the `ResultFactory` class:
 
 ```csharp
-var success = Result.Success(42);
-var failure = Result.Failure<int>(new NotFoundError("item/7"));
+var success = ResultFactory.Success(42);
+var failure = ResultFactory.Failure<int>(new NotFoundError("item/7"));
 ```
 
 ---
@@ -159,6 +161,37 @@ if (result.TryGetValue(out var user))
 }
 ```
 
+### TryGetError
+
+Extracts the error from a failure using a try-pattern. Useful for early-return orchestration:
+
+```csharp
+var result = await ValidateAsync(request);
+
+if (result.TryGetError(out var error))
+    return error; // implicit Error → Result<T>
+```
+
+### GetValueOrThrow
+
+Extracts the success value after failure has been handled. Throws `InvalidOperationException` if called on a failure:
+
+```csharp
+if (result.TryGetError(out var error))
+    return error;
+
+var value = result.GetValueOrThrow();
+```
+
+### ForwardFailure
+
+Forwards a failure from one result type to another, preserving the error. Throws `InvalidOperationException` if called on a success:
+
+```csharp
+if (result.IsFailure)
+    return result.ForwardFailure<InputType, OutputType>();
+```
+
 ### Match
 
 Exhaustively handles both cases and produces a value:
@@ -192,6 +225,47 @@ public async Task<Result<OrderConfirmation>> PlaceOrder(PlaceOrderRequest reques
 ```
 
 If `ValidateRequest` returns a `ValidationFailure`, none of the subsequent steps execute. If `ChargePaymentAsync` fails, the error propagates and `OrderConfirmation` is never created.
+
+---
+
+## Infrastructure Usage
+
+The non-generic `Result` base type allows middleware, pipeline behaviors, and cross-cutting concerns to inspect and transform results without knowing the generic payload type.
+
+### Check status
+
+```csharp
+if (response is Result result && result.IsFailure)
+{
+    _logger.LogWarning("Operation failed");
+}
+```
+
+### TryGetError (non-generic)
+
+Extracts the error from any `Result` without knowing its generic type. Returns `false` and assigns `null` for successes:
+
+```csharp
+if (response is Result result &&
+    result.TryGetError(out var error))
+{
+    logger.LogWarning("Failure: {Code}", error.Code);
+}
+```
+
+### MapError (non-generic)
+
+Transforms the error of any `Result` without knowing its generic type. Successes pass through unchanged. The concrete `Result<T>` type is preserved at runtime:
+
+```csharp
+if (response is Result result)
+{
+    response = result.MapError(error =>
+        new WrappedError($"service.{error.Code}"));
+}
+```
+
+These extensions operate on the base `Result` type and are intended strictly for failure-side infrastructure. They do not expose the success value.
 
 ---
 

@@ -85,7 +85,7 @@ public static class ResultCompositionExtensions
     return result switch
     {
       Success<TIn> s => await next(s.Value),
-      Failure<TIn> f => Result.Failure<TOut>(f.Error),
+      Failure<TIn> f => ResultFactory.Failure<TOut>(f.Error),
       _ => throw new InvalidOperationException()
     };
   }
@@ -116,6 +116,52 @@ public static class ResultCompositionExtensions
 
     value = default!;
     return false;
+  }
+
+  /// <summary>
+  /// Attempts to retrieve the error from a result.
+  /// </summary>
+  /// <typeparam name="T">The type of the success value.</typeparam>
+  /// <param name="result">The result to retrieve the error from.</param>
+  /// <param name="error">
+  /// When this method returns, contains the error if the result is a failure;
+  /// otherwise, <c>null</c>.
+  /// </param>
+  /// <returns>
+  /// <c>true</c> if <paramref name="result"/> is a <see cref="Failure{T}"/> and <paramref name="error"/> was assigned;
+  /// otherwise, <c>false</c>.
+  /// </returns>
+  public static bool TryGetError<T>(
+    this Result<T> result,
+    out Error error)
+    where T : notnull
+  {
+    if (result is Failure<T> f)
+    {
+      error = f.Error;
+      return true;
+    }
+
+    error = null!;
+    return false;
+  }
+
+  /// <summary>
+  /// Extracts the success value from a result, or throws if the result is a failure.
+  /// </summary>
+  /// <typeparam name="T">The type of the success value.</typeparam>
+  /// <param name="result">The result to extract the value from.</param>
+  /// <returns>The success value.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if the result is not a success.</exception>
+  public static T GetValueOrThrow<T>(
+    this Result<T> result)
+    where T : notnull
+  {
+    return result switch
+    {
+      Success<T> s => s.Value,
+      _ => throw new InvalidOperationException()
+    };
   }
 
   /// <summary>

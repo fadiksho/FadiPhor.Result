@@ -31,8 +31,8 @@ public class ExtensionTests
   public void IsSuccess_IsFailure_AreMutuallyExclusive()
   {
     // Arrange
-    var success = Result.Success(42);
-    var failure = Result.Failure<int>(new TestError("test.error"));
+    var success = ResultFactory.Success(42);
+    var failure = ResultFactory.Failure<int>(new TestError("test.error"));
 
     // Act & Assert
     Assert.True(success.IsSuccess);
@@ -49,7 +49,7 @@ public class ExtensionTests
   public void TryGetValue_OnSuccess_ShouldReturnTrueAndAssignValue()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act
     var success = result.TryGetValue(out var value);
@@ -64,7 +64,7 @@ public class ExtensionTests
   {
     // Arrange
     var error = new TestError("test.error", "Test error");
-    var result = Result.Failure<int>(error);
+    var result = ResultFactory.Failure<int>(error);
 
     // Act
     var success = result.TryGetValue(out var value);
@@ -79,7 +79,7 @@ public class ExtensionTests
   {
     // Arrange
     var person = new { Name = "John", Age = 30 };
-    var result = Result.Success(person);
+    var result = ResultFactory.Success(person);
 
     // Act
     var success = result.TryGetValue(out var value);
@@ -91,13 +91,88 @@ public class ExtensionTests
 
   #endregion
 
+  #region TryGetError Tests
+
+  [Fact]
+  public void TryGetError_OnFailure_ShouldReturnTrueAndAssignError()
+  {
+    // Arrange
+    var error = new TestError("test.error", "Test error");
+    var result = ResultFactory.Failure<int>(error);
+
+    // Act
+    var isFailure = result.TryGetError(out var outError);
+
+    // Assert
+    Assert.True(isFailure);
+    Assert.Same(error, outError);
+  }
+
+  [Fact]
+  public void TryGetError_OnSuccess_ShouldReturnFalseAndAssignNull()
+  {
+    // Arrange
+    var result = ResultFactory.Success(42);
+
+    // Act
+    var isFailure = result.TryGetError(out var outError);
+
+    // Assert
+    Assert.False(isFailure);
+    Assert.Null(outError);
+  }
+
+  [Fact]
+  public void TryGetError_ShouldPreserveErrorSubtype()
+  {
+    // Arrange
+    var error = new ValidationError("validation.failed", "Validation failed");
+    var result = ResultFactory.Failure<string>(error);
+
+    // Act
+    var isFailure = result.TryGetError(out var outError);
+
+    // Assert
+    Assert.True(isFailure);
+    Assert.IsType<ValidationError>(outError);
+  }
+
+  #endregion
+
+  #region GetValueOrThrow Tests
+
+  [Fact]
+  public void GetValueOrThrow_OnSuccess_ShouldReturnValue()
+  {
+    // Arrange
+    var result = ResultFactory.Success(42);
+
+    // Act
+    var value = result.GetValueOrThrow();
+
+    // Assert
+    Assert.Equal(42, value);
+  }
+
+  [Fact]
+  public void GetValueOrThrow_OnFailure_ShouldThrow()
+  {
+    // Arrange
+    var result = ResultFactory.Failure<int>(new TestError("test.error"));
+
+    // Act & Assert
+    Assert.Throws<InvalidOperationException>(() => result.GetValueOrThrow());
+  }
+
+  #endregion
+
   #region MapError Tests
 
   [Fact]
   public void MapError_OnSuccess_ShouldReturnUnchanged()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act
     var mapped = result.MapError(e => new ValidationError("mapped.error"));
@@ -113,7 +188,7 @@ public class ExtensionTests
   {
     // Arrange
     var originalError = new TestError("test.error", "Original error");
-    var result = Result.Failure<int>(originalError);
+    var result = ResultFactory.Failure<int>(originalError);
 
     // Act
     var mapped = result.MapError(e => new ValidationError("mapped.error", "Mapped error"));
@@ -130,7 +205,7 @@ public class ExtensionTests
   public void MapError_WithNullMap_ShouldThrowArgumentNullException()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act & Assert
     Assert.Throws<ArgumentNullException>(() => result.MapError(null!));
@@ -145,7 +220,7 @@ public class ExtensionTests
   {
     // Arrange
     var error = new TestError("test.error", "Test error");
-    var result = Result.Failure<int>(error);
+    var result = ResultFactory.Failure<int>(error);
 
     // Act
     var ensured = result.Ensure(
@@ -162,7 +237,7 @@ public class ExtensionTests
   public void Ensure_OnSuccessWithPredicateTrue_ShouldReturnUnchanged()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act
     var ensured = result.Ensure(
@@ -179,7 +254,7 @@ public class ExtensionTests
   public void Ensure_OnSuccessWithPredicateFalse_ShouldReturnFailure()
   {
     // Arrange
-    var result = Result.Success(-5);
+    var result = ResultFactory.Success(-5);
 
     // Act
     var ensured = result.Ensure(
@@ -198,7 +273,7 @@ public class ExtensionTests
   {
     // Arrange
     var error = new TestError("test.error", "Test error");
-    var result = Result.Failure<int>(error);
+    var result = ResultFactory.Failure<int>(error);
     var predicateCalled = false;
 
     // Act
@@ -215,7 +290,7 @@ public class ExtensionTests
   public void Ensure_ShouldNotEvaluateErrorFactoryWhenPredicateTrue()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
     var errorFactoryCalled = false;
 
     // Act
@@ -232,7 +307,7 @@ public class ExtensionTests
   public void Ensure_WithNullPredicate_ShouldThrowArgumentNullException()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act & Assert
     Assert.Throws<ArgumentNullException>(() =>
@@ -243,7 +318,7 @@ public class ExtensionTests
   public void Ensure_WithNullErrorFactory_ShouldThrowArgumentNullException()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act & Assert
     Assert.Throws<ArgumentNullException>(() =>
@@ -254,7 +329,7 @@ public class ExtensionTests
   public void Ensure_CanChainMultipleValidations()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act
     var validated = result
@@ -271,7 +346,7 @@ public class ExtensionTests
   public void Ensure_ChainStopsAtFirstFailure()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
     var secondPredicateCalled = false;
 
     // Act
@@ -294,7 +369,7 @@ public class ExtensionTests
   public void Tap_OnSuccess_ShouldExecuteActionAndReturnUnchanged()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
     var capturedValue = 0;
 
     // Act
@@ -310,7 +385,7 @@ public class ExtensionTests
   {
     // Arrange
     var error = new TestError("test.error", "Test error");
-    var result = Result.Failure<int>(error);
+    var result = ResultFactory.Failure<int>(error);
     var actionCalled = false;
 
     // Act
@@ -325,7 +400,7 @@ public class ExtensionTests
   public void Tap_WithNullAction_ShouldThrowArgumentNullException()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act & Assert
     Assert.Throws<ArgumentNullException>(() => result.Tap(null!));
@@ -335,7 +410,7 @@ public class ExtensionTests
   public void Tap_ShouldNotSwallowExceptions()
   {
     // Arrange
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Act & Assert
     var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -347,15 +422,15 @@ public class ExtensionTests
   public void Tap_CanBeChainedWithBind()
   {
     // Arrange
-    var result = Result.Success(10);
+    var result = ResultFactory.Success(10);
     var log = new List<string>();
 
     // Act
     var output = result
       .Tap(x => log.Add($"Initial value: {x}"))
-      .Bind(x => Result.Success(x * 2))
+      .Bind(x => ResultFactory.Success(x * 2))
       .Tap(x => log.Add($"After doubling: {x}"))
-      .Bind(x => Result.Success(x + 5))
+      .Bind(x => ResultFactory.Success(x + 5))
       .Tap(x => log.Add($"After adding 5: {x}"));
 
     // Assert
@@ -378,11 +453,11 @@ public class ExtensionTests
     var log = new List<string>();
 
     // Act
-    var result = Result.Success(42)
+    var result = ResultFactory.Success(42)
       .Tap(x => log.Add($"Starting with: {x}"))
       .Ensure(x => x > 0, () => new ValidationError("must.be.positive"))
       .Tap(x => log.Add($"Validated: {x}"))
-      .Bind(x => Result.Success(x * 2))
+      .Bind(x => ResultFactory.Success(x * 2))
       .Tap(x => log.Add($"Doubled: {x}"))
       .MapError(e => new TestError("enriched." + e.Code, $"Enriched: {e.Message}"));
 
@@ -400,11 +475,11 @@ public class ExtensionTests
     var log = new List<string>();
 
     // Act
-    var result = Result.Success(-5)
+    var result = ResultFactory.Success(-5)
       .Tap(x => log.Add($"Starting with: {x}"))
       .Ensure(x => x > 0, () => new ValidationError("must.be.positive", "Value must be positive"))
       .Tap(x => log.Add("Should not execute"))
-      .Bind(x => Result.Success(x * 2))
+      .Bind(x => ResultFactory.Success(x * 2))
       .MapError(e => new TestError("enriched." + e.Code, $"Enriched: {e.Message}"));
 
     // Assert

@@ -1,6 +1,44 @@
 namespace FadiPhor.Result;
 
 /// <summary>
+/// Base abstraction for all result types, providing a common interface for middleware and infrastructure.
+/// </summary>
+/// <remarks>
+/// This non-generic base type enables cross-cutting concerns to operate on results without
+/// knowing their generic payload type. It does not introduce new state or expose Error/Value properties.
+/// Use for middleware, logging, and pipeline behaviors that need to inspect result status uniformly.
+/// </remarks>
+public abstract record Result
+{
+  /// <summary>
+  /// Gets a value indicating whether this result represents a successful outcome.
+  /// </summary>
+  /// <value>
+  /// <c>true</c> if this is a success result; otherwise, <c>false</c>.
+  /// </value>
+  public abstract bool IsSuccess { get; }
+
+  /// <summary>
+  /// Gets a value indicating whether this result represents a failed outcome.
+  /// </summary>
+  /// <value>
+  /// <c>true</c> if this is a failure result; otherwise, <c>false</c>.
+  /// </value>
+  public bool IsFailure => !IsSuccess;
+
+  /// <summary>
+  /// Returns the error contained in this result, or <c>null</c> if this is a success.
+  /// </summary>
+  internal abstract Error? GetErrorInternal();
+
+  /// <summary>
+  /// Returns a new result with the error transformed by <paramref name="map"/>, preserving the concrete
+  /// generic type. Returns the same instance unchanged when this result is a success.
+  /// </summary>
+  internal abstract Result MapErrorInternal(Func<Error, Error> map);
+}
+
+/// <summary>
 /// Represents a union-based result type that models either a successful outcome with a value 
 /// or a failure with an error.
 /// </summary>
@@ -9,7 +47,7 @@ namespace FadiPhor.Result;
 /// This type enforces safe error handling through structural guarantees. Only Success or Failure states exist.
 /// Use for operations that can fail with typed errors, MediatR handlers, or API boundaries requiring serializable errors.
 /// </remarks>
-public abstract record Result<T>
+public abstract record Result<T> : Result
   where T : notnull
 {
   /// <summary>
@@ -18,15 +56,17 @@ public abstract record Result<T>
   /// <value>
   /// <c>true</c> if this is a <see cref="Success{T}"/>; otherwise, <c>false</c>.
   /// </value>
-  public bool IsSuccess => this is Success<T>;
+  public override bool IsSuccess => this is Success<T>;
 
-  /// <summary>
-  /// Gets a value indicating whether this result represents a failed outcome.
-  /// </summary>
-  /// <value>
-  /// <c>true</c> if this is a <see cref="Failure{T}"/>; otherwise, <c>false</c>.
-  /// </value>
-  public bool IsFailure => this is Failure<T>;
+  internal override Error? GetErrorInternal() =>
+    this is Failure<T> f ? f.Error : null;
+
+  internal override Result MapErrorInternal(Func<Error, Error> map) => this switch
+  {
+    Success<T> => this,
+    Failure<T> f => new Failure<T>(map(f.Error)),
+    _ => throw new InvalidOperationException()
+  };
 
   /// <summary>
   /// Implicitly converts a value to a Success result.

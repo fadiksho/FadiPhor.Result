@@ -18,7 +18,7 @@ public class CoreTests
   public void Success_ShouldHoldValue()
   {
     // Arrange & Act
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
 
     // Assert
     Assert.IsType<Success<int>>(result);
@@ -40,7 +40,7 @@ public class CoreTests
     var error = new TestError("test.error", "Test error");
 
     // Act
-    var result = Result.Failure<int>(error);
+    var result = ResultFactory.Failure<int>(error);
 
     // Assert
     Assert.IsType<Failure<int>>(result);
@@ -59,13 +59,13 @@ public class CoreTests
   public void Bind_ChainMultipleOperations()
   {
     // Arrange
-    var result = Result.Success(10);
+    var result = ResultFactory.Success(10);
 
     // Act
     var output = result
-      .Bind(x => Result.Success(x + 5))
-      .Bind(x => Result.Success(x * 2))
-      .Bind(x => Result.Success(x.ToString()));
+      .Bind(x => ResultFactory.Success(x + 5))
+      .Bind(x => ResultFactory.Success(x * 2))
+      .Bind(x => ResultFactory.Success(x.ToString()));
 
     // Assert
     Assert.IsType<Success<string>>(output);
@@ -76,14 +76,14 @@ public class CoreTests
   public void Bind_ErrorPropagation_ShouldStopChain()
   {
     // Arrange
-    var result = Result.Success(10);
+    var result = ResultFactory.Success(10);
     var error = new TestError("test.error", "Test error");
 
     // Act
     var output = result
-      .Bind(x => Result.Success(x + 5))
-      .Bind(x => Result.Failure<int>(error))
-      .Bind(x => Result.Success(x * 100)); // Should not execute
+      .Bind(x => ResultFactory.Success(x + 5))
+      .Bind(x => ResultFactory.Failure<int>(error))
+      .Bind(x => ResultFactory.Success(x * 100)); // Should not execute
 
     // Assert
     Assert.IsType<Failure<int>>(output);
@@ -94,13 +94,13 @@ public class CoreTests
   public async Task AsyncBind_OnSuccess_ShouldExecuteNextFunction()
   {
     // Arrange
-    var resultTask = Task.FromResult(Result.Success(42));
+    var resultTask = Task.FromResult(ResultFactory.Success(42));
 
     // Act
     var output = await resultTask.Bind(async value =>
     {
       await Task.Delay(1); // Simulate async work
-      return Result.Success(value * 2);
+      return ResultFactory.Success(value * 2);
     });
 
     // Assert
@@ -113,13 +113,13 @@ public class CoreTests
   {
     // Arrange
     var error = new TestError("test.error", "Test error");
-    var resultTask = Task.FromResult(Result.Failure<int>(error));
+    var resultTask = Task.FromResult(ResultFactory.Failure<int>(error));
 
     // Act
     var output = await resultTask.Bind(async value =>
     {
       await Task.Delay(1);
-      return Result.Success(value * 2);
+      return ResultFactory.Success(value * 2);
     });
 
     // Assert
@@ -131,19 +131,19 @@ public class CoreTests
   public async Task AsyncBind_ChainMultipleOperations()
   {
     // Arrange
-    var resultTask = Task.FromResult(Result.Success(10));
+    var resultTask = Task.FromResult(ResultFactory.Success(10));
 
     // Act
     var output = await resultTask
       .Bind(async x =>
       {
         await Task.Delay(1);
-        return Result.Success(x + 5);
+        return ResultFactory.Success(x + 5);
       })
       .Bind(async x =>
       {
         await Task.Delay(1);
-        return Result.Success(x * 2);
+        return ResultFactory.Success(x * 2);
       });
 
     // Assert
@@ -155,7 +155,7 @@ public class CoreTests
   public void ResultWithUnit_Success()
   {
     // Arrange & Act
-    var result = Result.Success(Unit.Value);
+    var result = ResultFactory.Success(Unit.Value);
 
     // Assert
     Assert.IsType<Success<Unit>>(result);
@@ -168,7 +168,7 @@ public class CoreTests
     var error = new TestError("test.error", "Test error");
 
     // Act
-    var result = Result.Failure<Unit>(error);
+    var result = ResultFactory.Failure<Unit>(error);
 
     // Assert
     Assert.IsType<Failure<Unit>>(result);
