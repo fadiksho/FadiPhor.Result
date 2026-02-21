@@ -272,6 +272,22 @@ public class SerializationTests
   }
 
   [Fact]
+  public void Serialize_RuntimeType_ShouldUseResultConverter()
+  {
+    // Arrange
+    var result = ResultFactory.Success(42);
+    var options = CreateOptions();
+
+    object runtime = result;
+
+    // Act
+    var json = JsonSerializer.Serialize(runtime, runtime.GetType(), options);
+
+    // Assert
+    Assert.Contains("\"kind\":\"Success\"", json);
+  }
+
+  [Fact]
   public void AddResultSerialization_WorksWithNullTypeInfoResolver()
   {
     // Arrange

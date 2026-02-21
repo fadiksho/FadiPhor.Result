@@ -23,7 +23,10 @@ public sealed class ResultJsonConverterFactory : JsonConverterFactory
       return false;
 
     var genericType = typeToConvert.GetGenericTypeDefinition();
-    return genericType == typeof(Result<>);
+
+    return genericType == typeof(Result<>) ||
+           genericType == typeof(Success<>) ||
+           genericType == typeof(Failure<>);
   }
 
   /// <summary>
