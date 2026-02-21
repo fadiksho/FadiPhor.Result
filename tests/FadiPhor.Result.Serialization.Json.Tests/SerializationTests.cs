@@ -71,7 +71,7 @@ public class SerializationTests
   public void RoundTrip_Success_ShouldPreserveValue()
   {
     // Arrange
-    var original = Result.Success("Hello, World!");
+    var original = ResultFactory.Success("Hello, World!");
     var options = CreateOptions();
 
     // Act
@@ -93,7 +93,7 @@ public class SerializationTests
   {
     // Arrange
     var error = new TestError("validation.failed", "Validation failed");
-    var original = Result.Failure<string>(error);
+    var original = ResultFactory.Failure<string>(error);
     var options = CreateOptions();
 
     // Act
@@ -119,7 +119,7 @@ public class SerializationTests
   {
     // Arrange
     var error = new ValidationError("validation.failed", ["email", "password"], "Validation failed");
-    var result = Result.Failure<int>(error);
+    var result = ResultFactory.Failure<int>(error);
     var options = CreateOptions();
 
     // Act
@@ -202,7 +202,7 @@ public class SerializationTests
   {
     // Arrange
     var user = new User(123, "John Doe");
-    var result = Result.Success(user);
+    var result = ResultFactory.Success(user);
     var options = CreateOptions();
 
     // Act
@@ -225,7 +225,7 @@ public class SerializationTests
   public void RoundTrip_ResultWithUnit_ShouldPreserve()
   {
     // Arrange
-    var original = Result.Success(Unit.Value);
+    var original = ResultFactory.Success(Unit.Value);
     var options = CreateOptions();
 
     // Act
@@ -260,7 +260,7 @@ public class SerializationTests
     Assert.NotSame(existingResolver, options.TypeInfoResolver); // Should be combined, not replaced
 
     // Verify serialization still works
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
     var json = JsonSerializer.Serialize(result, options);
     Assert.Contains("\"kind\":\"Success\"", json);
     Assert.Contains("\"value\":42", json);
@@ -288,7 +288,7 @@ public class SerializationTests
     Assert.NotNull(options.TypeInfoResolver);
 
     // Verify serialization works
-    var result = Result.Success(42);
+    var result = ResultFactory.Success(42);
     var json = JsonSerializer.Serialize(result, options);
     Assert.Contains("\"kind\":\"Success\"", json);
     Assert.Contains("\"value\":42", json);

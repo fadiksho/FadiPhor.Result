@@ -10,14 +10,14 @@ namespace FadiPhor.Result;
 /// <para><strong>Example Usage:</strong></para>
 /// <code>
 /// // Explicit success
-/// var result = Result.Success(42);
+/// var result = ResultFactory.Success(42);
 /// 
 /// // Explicit failure
 /// var error = new NotFoundError("user.not_found", "User not found");
-/// var result = Result.Failure&lt;User&gt;(error);
+/// var result = ResultFactory.Failure&lt;User&gt;(error);
 /// </code>
 /// </remarks>
-public static class Result
+public static class ResultFactory
 {
   /// <summary>
   /// Creates a success result containing the specified value.
