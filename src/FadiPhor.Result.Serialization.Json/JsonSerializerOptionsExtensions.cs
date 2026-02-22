@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace FadiPhor.Result.Serialization.Json;
@@ -26,18 +27,28 @@ public static class JsonSerializerOptionsExtensions
     // Add the Result converter factory
     options.Converters.Add(new ResultJsonConverterFactory());
 
-    // Build type info resolver with error resolvers
+    // Collect all resolvers: custom resolvers + default resolver
+    var allResolvers = resolvers.Append(new DefaultErrorPolymorphicResolver()).ToList();
+
+    // Build type info resolver with centralized polymorphism configuration
     var resultResolver = new DefaultJsonTypeInfoResolver();
 
-    // Add custom resolvers first
-    foreach (var resolver in resolvers)
+    resultResolver.Modifiers.Add(typeInfo =>
     {
-      resultResolver.Modifiers.Add(resolver.ResolveDerivedType);
-    }
+      if (typeInfo.Type != typeof(Error))
+        return;
 
-    // Then add default resolver that merges with any existing registrations
-    var defaultResolver = new DefaultErrorPolymorphicResolver();
-    resultResolver.Modifiers.Add(defaultResolver.ResolveDerivedType);
+      var opts = typeInfo.PolymorphismOptions ??= new JsonPolymorphismOptions
+      {
+        TypeDiscriminatorPropertyName = "$type",
+        IgnoreUnrecognizedTypeDiscriminators = false,
+        UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
+      };
+
+      foreach (var resolver in allResolvers)
+        foreach (var derived in resolver.GetDerivedTypes())
+          opts.DerivedTypes.Add(derived);
+    });
 
     // Preserve existing resolver if present, otherwise use the new one
     if (options.TypeInfoResolver != null)

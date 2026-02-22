@@ -99,6 +99,12 @@ Property order: `kind` first, then `error`. The `$type` discriminator identifies
 
 Errors are serialized through `System.Text.Json` polymorphism. The discriminator property is `$type`. Each `Error` subtype must be registered with a resolver.
 
+All resolvers are **declarative** — they return the derived types they contribute via `GetDerivedTypes()`. `AddResultSerialization` aggregates every resolver's types into a single `JsonPolymorphismOptions` instance. This means:
+
+- Resolver registration order does not matter.
+- Resolvers cannot overwrite each other.
+- Adding a new resolver is safe — just implement `GetDerivedTypes()`.
+
 ### Default behavior
 
 `AddResultSerialization` automatically registers `ValidationFailure`. You do not need to include it in your resolver.
@@ -120,22 +126,10 @@ public record ConflictError(string Reason) : Error("conflict")
 
 public class MyErrorResolver : IErrorPolymorphicResolver
 {
-    public void ResolveDerivedType(JsonTypeInfo typeInfo)
+    public IEnumerable<JsonDerivedType> GetDerivedTypes()
     {
-        if (typeInfo.Type != typeof(Error))
-            return;
-
-        typeInfo.PolymorphismOptions = new JsonPolymorphismOptions
-        {
-            TypeDiscriminatorPropertyName = "$type",
-            IgnoreUnrecognizedTypeDiscriminators = false,
-            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
-            DerivedTypes =
-            {
-                new JsonDerivedType(typeof(NotFoundError), nameof(NotFoundError)),
-                new JsonDerivedType(typeof(ConflictError), nameof(ConflictError))
-            }
-        };
+        yield return new JsonDerivedType(typeof(NotFoundError), nameof(NotFoundError));
+        yield return new JsonDerivedType(typeof(ConflictError), nameof(ConflictError));
     }
 }
 ```
@@ -147,7 +141,7 @@ var options = new JsonSerializerOptions()
     .AddResultSerialization(new MyErrorResolver());
 ```
 
-The default resolver merges `ValidationFailure` into whatever your resolver provides. Custom resolvers run first.
+All derived types from all resolvers — including the built-in `ValidationFailure` — are merged into a single configuration automatically.
 
 ---
 

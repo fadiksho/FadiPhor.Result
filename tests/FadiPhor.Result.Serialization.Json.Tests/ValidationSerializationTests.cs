@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace FadiPhor.Result.Serialization.Json.Tests;
@@ -82,22 +81,9 @@ public class ValidationSerializationTests
 
   private class CustomErrorResolver : IErrorPolymorphicResolver
   {
-    public void ResolveDerivedType(JsonTypeInfo typeInfo)
+    public IEnumerable<JsonDerivedType> GetDerivedTypes()
     {
-      if (typeInfo.Type != typeof(Error))
-        return;
-
-      // Custom resolver should work alongside default resolver
-      typeInfo.PolymorphismOptions = new JsonPolymorphismOptions
-      {
-        TypeDiscriminatorPropertyName = "$type",
-        IgnoreUnrecognizedTypeDiscriminators = false,
-        UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
-        DerivedTypes =
-        {
-          new JsonDerivedType(typeof(CustomTestError), nameof(CustomTestError))
-        }
-      };
+      yield return new JsonDerivedType(typeof(CustomTestError), nameof(CustomTestError));
     }
   }
 

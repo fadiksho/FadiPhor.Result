@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace FadiPhor.Result.Serialization.Json.Tests;
@@ -37,22 +36,10 @@ public class SerializationTests
   // Test resolver for polymorphic error serialization
   private class TestErrorResolver : IErrorPolymorphicResolver
   {
-    public void ResolveDerivedType(JsonTypeInfo typeInfo)
+    public IEnumerable<JsonDerivedType> GetDerivedTypes()
     {
-      if (typeInfo.Type != typeof(Error))
-        return;
-
-      typeInfo.PolymorphismOptions = new JsonPolymorphismOptions
-      {
-        TypeDiscriminatorPropertyName = "$type",
-        IgnoreUnrecognizedTypeDiscriminators = false,
-        UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
-        DerivedTypes =
-        {
-          new JsonDerivedType(typeof(TestError), nameof(TestError)),
-          new JsonDerivedType(typeof(ValidationError), nameof(ValidationError))
-        }
-      };
+      yield return new JsonDerivedType(typeof(TestError), nameof(TestError));
+      yield return new JsonDerivedType(typeof(ValidationError), nameof(ValidationError));
     }
   }
 
