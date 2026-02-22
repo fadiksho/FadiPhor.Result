@@ -13,8 +13,8 @@ namespace FadiPhor.Result.Serialization.Json;
 public interface IErrorPolymorphicResolver
 {
   /// <summary>
-  /// Configures polymorphic serialization for the Error type hierarchy.
+  /// Returns the derived types that this resolver contributes for polymorphic Error serialization.
   /// </summary>
-  /// <param name="typeInfo">The type information to configure.</param>
-  void ResolveDerivedType(JsonTypeInfo typeInfo);
+  /// <returns>A collection of <see cref="JsonDerivedType"/> instances representing derived error types.</returns>
+  IEnumerable<JsonDerivedType> GetDerivedTypes();
 }
