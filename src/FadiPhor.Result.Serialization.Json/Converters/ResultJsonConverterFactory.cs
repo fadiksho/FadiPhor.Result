@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace FadiPhor.Result.Serialization.Json;
+namespace FadiPhor.Result.Serialization.Json.Converters;
 
 /// <summary>
 /// Factory for creating JSON converters for <see cref="Result{T}"/> types.

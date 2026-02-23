@@ -183,15 +183,6 @@ if (result.TryGetError(out var error))
 var value = result.GetValueOrThrow();
 ```
 
-### ForwardFailure
-
-Forwards a failure from one result type to another, preserving the error. Throws `InvalidOperationException` if called on a success:
-
-```csharp
-if (result.IsFailure)
-    return result.ForwardFailure<InputType, OutputType>();
-```
-
 ### Match
 
 Exhaustively handles both cases and produces a value:
@@ -220,7 +211,7 @@ public async Task<Result<OrderConfirmation>> PlaceOrder(PlaceOrderRequest reques
         .Bind(customer => CreateOrderAsync(customer, request.Items))
         .Bind(order => ChargePaymentAsync(order))
         .Bind(order => Task.FromResult(
-            Result.Success(new OrderConfirmation(order.Id, order.Total))));
+            ResultFactory.Success(new OrderConfirmation(order.Id, order.Total))));
 }
 ```
 

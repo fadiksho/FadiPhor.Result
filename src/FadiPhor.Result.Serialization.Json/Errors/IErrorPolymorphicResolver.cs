@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization.Metadata;
 
-namespace FadiPhor.Result.Serialization.Json;
+namespace FadiPhor.Result.Serialization.Json.Errors;
 
 /// <summary>
 /// Defines a contract for resolving polymorphic derived types of <see cref="Error"/> 
