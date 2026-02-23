@@ -1,8 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using FadiPhor.Result.Serialization.Json.Converters;
+using FadiPhor.Result.Serialization.Json.Errors;
 
-namespace FadiPhor.Result.Serialization.Json;
+namespace FadiPhor.Result.Serialization.Json.Configuration;
 
 /// <summary>
 /// Provides extension methods for configuring System.Text.Json to serialize <see cref="Result{T}"/> types.

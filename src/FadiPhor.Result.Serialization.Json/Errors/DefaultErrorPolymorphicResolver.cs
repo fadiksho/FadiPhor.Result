@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization.Metadata;
 
-namespace FadiPhor.Result.Serialization.Json;
+namespace FadiPhor.Result.Serialization.Json.Errors;
 
 /// <summary>
 /// Internal resolver that automatically registers core library error types for polymorphic serialization.

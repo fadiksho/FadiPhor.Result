@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace FadiPhor.Result.Serialization.Json;
+namespace FadiPhor.Result.Serialization.Json.Converters;
 
 internal sealed class ResultJsonConverter<T> : JsonConverter<Result<T>>
   where T : notnull

@@ -8,7 +8,7 @@ This repository contains two packages:
 | Package | Purpose |
 |---|---|
 | [`FadiPhor.Result`](src/FadiPhor.Result/README.md) | Core `Result<T>` type — union of `Success<T>` and `Failure<T>`, composition operators, validation types. No infrastructure dependencies. |
-| [`FadiPhor.Result.Serialization.Json`](src/FadiPhor.Result.Serialization.Json/README.md) | `System.Text.Json` converters for `Result<T>` with polymorphic `Error` serialization. Depends on the core package. |
+| [`FadiPhor.Result.Serialization.Json`](src/FadiPhor.Result.Serialization.Json/README.md) | `System.Text.Json` converters for `Result<T>` with polymorphic `Error` serialization, plus JSON envelope transport protocol with DI registration. Depends on the core package. |
 
 Both packages share the same semantic version, driven by Git tags.
 
