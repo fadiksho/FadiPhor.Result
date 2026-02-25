@@ -19,7 +19,8 @@ public static class FadiPhorResultJsonExtensions
   /// </summary>
   /// <param name="services">The service collection to register into.</param>
   /// <param name="assemblies">
-  /// Assemblies to scan for request type implementations.
+  /// Assemblies to scan for request type implementations and
+  /// <see cref="IErrorPolymorphicResolver"/> implementations.
   /// </param>
   /// <param name="requestMarkerType">
   /// The interface used to identify request types during assembly scanning.
@@ -31,13 +32,14 @@ public static class FadiPhorResultJsonExtensions
   /// <para>This single call replaces manual registration of:</para>
   /// <list type="bullet">
   /// <item>Request type registry (scanning for request types matching the marker)</item>
+  /// <item>Error polymorphic resolvers (discovered from provided assemblies)</item>
   /// <item><see cref="FadiPhorJsonOptions"/> with Result serialization support</item>
   /// <item>Envelope serializer</item>
   /// </list>
   /// <para>
-  /// <see cref="IErrorPolymorphicResolver"/> instances are resolved from the service provider
-  /// at build time. The consumer is responsible for registering resolvers before this method
-  /// is called or before the service provider is built.
+  /// <see cref="IErrorPolymorphicResolver"/> implementations found in the provided assemblies
+  /// are registered automatically. Additional resolvers (e.g. kernel-level) can be registered
+  /// by the consumer before the service provider is built.
   /// </para>
   /// <para>
   /// The library builds and owns its own <see cref="JsonSerializerOptions"/> instance,
@@ -56,7 +58,16 @@ public static class FadiPhorResultJsonExtensions
     var registry = new JsonRequestTypeRegistry(assemblyList, requestMarkerType);
     services.AddSingleton<IJsonRequestTypeRegistry>(registry);
 
-    // 2. Build protocol-owned JsonSerializerOptions using DI-resolved resolvers
+    // 2. Discover and register IErrorPolymorphicResolver implementations from assemblies
+    var resolverTypes = assemblyList
+      .SelectMany(a => a.GetExportedTypes())
+      .Where(t => !t.IsAbstract && !t.IsInterface
+        && typeof(IErrorPolymorphicResolver).IsAssignableFrom(t));
+
+    foreach (var resolverType in resolverTypes)
+      services.AddSingleton(typeof(IErrorPolymorphicResolver), resolverType);
+
+    // 3. Build protocol-owned JsonSerializerOptions using DI-resolved resolvers
     services.AddSingleton(sp =>
     {
       var resolvers = sp.GetServices<IErrorPolymorphicResolver>();
@@ -70,7 +81,7 @@ public static class FadiPhorResultJsonExtensions
       return new FadiPhorJsonOptions(options);
     });
 
-    // 3. Register IJsonEnvelopeSerializer
+    // 4. Register IJsonEnvelopeSerializer
     services.AddSingleton<IJsonEnvelopeSerializer>(sp =>
       new JsonEnvelopeSerializer(
         sp.GetRequiredService<IJsonRequestTypeRegistry>(),
