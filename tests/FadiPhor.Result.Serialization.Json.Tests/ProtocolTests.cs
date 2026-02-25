@@ -282,6 +282,7 @@ public class ProtocolTests
       [typeof(CreateUserRequest).Assembly], typeof(ITestRequest<>));
     var provider = services.BuildServiceProvider();
 
+
     // Assert
     var jsonOptions = provider.GetRequiredService<FadiPhorJsonOptions>();
     Assert.NotNull(jsonOptions);
