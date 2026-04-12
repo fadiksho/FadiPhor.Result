@@ -91,8 +91,7 @@ Property order is fixed: `kind` first, then `value`.
   "error": {
     "$type": "NotFoundError",
     "code": "not_found",
-    "message": "user/42 not found",
-    "entityId": "user/42"
+    "message": "User 42 was not found."
   }
 }
 ```
@@ -149,7 +148,14 @@ All resolvers are **declarative** — they return the derived types they contrib
 
 ### Default behavior
 
-`AddResultSerialization` automatically registers `ValidationFailure`. You do not need to include it in your resolver.
+`AddResultSerialization` automatically registers the following core error types. You do not need to include them in your resolver:
+
+- `ValidationFailure`
+- `NotFoundError`
+- `UnauthenticatedError`
+- `UnauthorizedError`
+- `ConflictError`
+- `UnexpectedError`
 
 ### Custom errors
 
@@ -158,22 +164,22 @@ Define your error types and implement `IErrorPolymorphicResolver`:
 ```csharp
 using FadiPhor.Result.Serialization.Json.Errors;
 
-public record NotFoundError(string EntityId) : Error("not_found")
+public record InsufficientFundsError(decimal Required, decimal Available) : Error("insufficient_funds")
 {
-    public override string? Message => $"{EntityId} not found";
+    public override string? Message => $"Required {Required:C} but only {Available:C} available";
 }
 
-public record ConflictError(string Reason) : Error("conflict")
+public record RateLimitedError(int RetryAfterSeconds) : Error("rate_limited")
 {
-    public override string? Message => Reason;
+    public override string? Message => $"Rate limited. Retry after {RetryAfterSeconds}s";
 }
 
 public class MyErrorResolver : IErrorPolymorphicResolver
 {
     public IEnumerable<JsonDerivedType> GetDerivedTypes()
     {
-        yield return new JsonDerivedType(typeof(NotFoundError), nameof(NotFoundError));
-        yield return new JsonDerivedType(typeof(ConflictError), nameof(ConflictError));
+        yield return new JsonDerivedType(typeof(InsufficientFundsError), nameof(InsufficientFundsError));
+        yield return new JsonDerivedType(typeof(RateLimitedError), nameof(RateLimitedError));
     }
 }
 ```
@@ -185,7 +191,7 @@ var options = new JsonSerializerOptions()
     .AddResultSerialization(new MyErrorResolver());
 ```
 
-All derived types from all resolvers — including the built-in `ValidationFailure` — are merged into a single configuration automatically.
+All derived types from all resolvers — including the built-in core types (`ValidationFailure`, `NotFoundError`, `UnauthenticatedError`, `UnauthorizedError`, `ConflictError`, `UnexpectedError`) — are merged into a single configuration automatically.
 
 ---
 
@@ -207,12 +213,12 @@ var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
 // deserialized is Success<int> { Value = 42 }
 
 // Failure round-trip
-Result<int> failure = new NotFoundError("item/7");
+Result<int> failure = new NotFoundError("item/7 was not found");
 var failureJson = JsonSerializer.Serialize(failure, options);
-// {"kind":"Failure","error":{"$type":"NotFoundError","code":"not_found","message":"item/7 not found","entityId":"item/7"}}
+// {"kind":"Failure","error":{"$type":"NotFoundError","code":"not_found","message":"item/7 was not found"}}
 
 var restored = JsonSerializer.Deserialize<Result<int>>(failureJson, options);
-// restored is Failure<int> { Error = NotFoundError { EntityId = "item/7" } }
+// restored is Failure<int> { Error = NotFoundError { Message = "item/7 was not found" } }
 ```
 
 ---

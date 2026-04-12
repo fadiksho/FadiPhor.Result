@@ -11,6 +11,11 @@ namespace FadiPhor.Result.Serialization.Json.Errors;
 /// <para><strong>Registered Core Error Types:</strong></para>
 /// <list type="bullet">
 /// <item>ValidationFailure</item>
+/// <item>NotFoundError</item>
+/// <item>UnauthenticatedError</item>
+/// <item>UnauthorizedError</item>
+/// <item>ConflictError</item>
+/// <item>UnexpectedError</item>
 /// </list>
 /// </remarks>
 internal sealed class DefaultErrorPolymorphicResolver : IErrorPolymorphicResolver
@@ -18,5 +23,10 @@ internal sealed class DefaultErrorPolymorphicResolver : IErrorPolymorphicResolve
   public IEnumerable<JsonDerivedType> GetDerivedTypes()
   {
     yield return new JsonDerivedType(typeof(ValidationFailure), nameof(ValidationFailure));
+    yield return new JsonDerivedType(typeof(NotFoundError), nameof(NotFoundError));
+    yield return new JsonDerivedType(typeof(UnauthenticatedError), nameof(UnauthenticatedError));
+    yield return new JsonDerivedType(typeof(UnauthorizedError), nameof(UnauthorizedError));
+    yield return new JsonDerivedType(typeof(ConflictError), nameof(ConflictError));
+    yield return new JsonDerivedType(typeof(UnexpectedError), nameof(UnexpectedError));
   }
 }

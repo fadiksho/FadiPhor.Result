@@ -25,9 +25,9 @@ public abstract record Error(string Code)
 Define domain errors by inheriting from `Error`:
 
 ```csharp
-public record NotFoundError(string EntityId) : Error("not_found")
+public record InsufficientFundsError(decimal Required, decimal Available) : Error("insufficient_funds")
 {
-    public override string? Message => $"{EntityId} not found";
+    public override string? Message => $"Required {Required:C} but only {Available:C} available";
 }
 ```
 
@@ -50,6 +50,64 @@ return new ValidationFailure(issues);
 
 `ValidationSeverity` values: `Error`, `Warning`, `Info`.
 
+### Built-in Error Types
+
+The library ships with common error types that cover the most frequent failure scenarios. Each has a fixed `Code` and an optional custom `Message`:
+
+| Type | Code | Default Message |
+|---|---|---|
+| `NotFoundError` | `"not_found"` | `"The requested resource was not found."` |
+| `UnauthenticatedError` | `"unauthenticated"` | `"Authentication is required."` |
+| `UnauthorizedError` | `"unauthorized"` | `"You do not have permission to perform this action."` |
+| `ConflictError` | `"conflict"` | `"The request conflicts with the current state of the resource."` |
+| `UnexpectedError` | `"unexpected"` | `"An unexpected error occurred."` |
+
+Use with a default message:
+
+```csharp
+return new NotFoundError();
+```
+
+Or provide a custom diagnostic message:
+
+```csharp
+return new NotFoundError($"User {userId} was not found.");
+return new UnauthenticatedError("Token has expired.");
+return new UnauthorizedError("Admin role required.");
+return new ConflictError("Duplicate email address.");
+```
+
+Pattern-match across error types in `Match`:
+
+```csharp
+return result.Match(
+    onSuccess: user => Ok(user),
+    onFailure: error => error switch
+    {
+        ValidationFailure vf => BadRequest(new { vf.Issues }),
+        NotFoundError => NotFound(),
+        UnauthenticatedError => Unauthorized(),
+        UnauthorizedError => Forbid(),
+        ConflictError => Conflict(),
+        UnexpectedError => StatusCode(500),
+        _ => Problem(detail: error.Code)
+    }
+);
+```
+
+### Error Codes
+
+All built-in error codes are available as constants on `FadiPhorErrorCodes`:
+
+```csharp
+if (error.Code == FadiPhorErrorCodes.NotFound)
+{
+    // handle not found
+}
+```
+
+Available constants: `ValidationFailed`, `NotFound`, `Unauthenticated`, `Unauthorized`, `Conflict`, `Unexpected`.
+
 ### Unit
 
 Use `Result<Unit>` for operations that succeed or fail without producing a value:
@@ -58,7 +116,7 @@ Use `Result<Unit>` for operations that succeed or fail without producing a value
 public Result<Unit> DeleteUser(int id)
 {
     if (!repository.Exists(id))
-        return new NotFoundError($"user/{id}");
+        return new NotFoundError($"user/{id} was not found");
 
     repository.Delete(id);
     return Unit.Value; // implicit conversion to Success<Unit>
@@ -78,7 +136,7 @@ public Result<User> GetUser(int id)
 {
     var user = repository.Find(id);
     if (user is null)
-        return new NotFoundError($"user/{id}"); // implicit → Failure<User>
+        return new NotFoundError($"user/{id} was not found"); // implicit → Failure<User>
 
     return user; // implicit → Success<User>
 }
@@ -92,7 +150,7 @@ When implicit conversion is not applicable (e.g. in generic contexts), use the `
 
 ```csharp
 var success = ResultFactory.Success(42);
-var failure = ResultFactory.Failure<int>(new NotFoundError("item/7"));
+var failure = ResultFactory.Failure<int>(new NotFoundError("item/7 was not found"));
 ```
 
 ---
