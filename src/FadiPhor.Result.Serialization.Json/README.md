@@ -16,7 +16,7 @@ FadiPhor.Result.Serialization.Json
 
 | Namespace | Purpose |
 |---|---|
-| `FadiPhor.Result.Serialization.Json` | DI entry point (`AddFadiPhorResultProtocol`) |
+| `FadiPhor.Result.Serialization.Json` | DI entry points (`AddResultSerialization`, `AddFadiPhorResultProtocol`) |
 | `FadiPhor.Result.Serialization.Json.Configuration` | `AddResultSerialization`, `FadiPhorJsonOptions` |
 | `FadiPhor.Result.Serialization.Json.Errors` | `IErrorPolymorphicResolver` |
 | `FadiPhor.Result.Serialization.Json.Transport` | `JsonEnvelope`, `IJsonEnvelopeSerializer` |
@@ -46,6 +46,33 @@ options.AddResultSerialization(new DomainErrorResolver(), new AuthErrorResolver(
 ```
 
 If a `TypeInfoResolver` is already set on the options, `AddResultSerialization` preserves it and combines both.
+
+### DI registration (serialization only)
+
+For applications using DI that need `Result<T>` serialization **without** the full transport protocol (no envelope, no request registry). Ideal for Minimal APIs, Blazor, MAUI, or any app that serializes `Result<T>` over HTTP, SignalR, or other transports directly:
+
+```csharp
+using FadiPhor.Result.Serialization.Json;
+
+// Built-in error types only (ValidationFailure, NotFoundError, etc.)
+services.AddResultSerialization();
+
+// With custom error resolver auto-discovery from assemblies:
+services.AddResultSerialization(
+    assemblies: [typeof(MyErrorResolver).Assembly]);
+```
+
+This registers:
+
+- **`FadiPhorJsonOptions`** — protocol-owned `JsonSerializerOptions` with Result converters and error polymorphism (does not collide with the consumer's own `JsonSerializerOptions`).
+- **Error polymorphic resolvers** — auto-discovers `IErrorPolymorphicResolver` implementations from the scanned assemblies (if provided).
+
+Resolve `FadiPhorJsonOptions` from DI whenever you need to serialize or deserialize `Result<T>`:
+
+```csharp
+var options = provider.GetRequiredService<FadiPhorJsonOptions>().SerializerOptions;
+var json = JsonSerializer.Serialize(result, options);
+```
 
 ### DI-based protocol registration
 
