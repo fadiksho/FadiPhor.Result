@@ -368,4 +368,108 @@ public class ProtocolTests
   }
 
   #endregion
+
+  #region AddResultSerialization Integration Tests
+
+  [Fact]
+  public void AddResultSerialization_RegistersFadiPhorJsonOptions()
+  {
+    // Arrange
+    var services = new ServiceCollection();
+
+    // Act
+    services.AddResultSerialization();
+    var provider = services.BuildServiceProvider();
+
+    // Assert
+    var jsonOptions = provider.GetRequiredService<FadiPhorJsonOptions>();
+    Assert.NotNull(jsonOptions);
+    Assert.Equal(JsonNamingPolicy.CamelCase, jsonOptions.SerializerOptions.PropertyNamingPolicy);
+  }
+
+  [Fact]
+  public void AddResultSerialization_DoesNotRegisterTransportServices()
+  {
+    // Arrange
+    var services = new ServiceCollection();
+
+    // Act
+    services.AddResultSerialization();
+    var provider = services.BuildServiceProvider();
+
+    // Assert
+    Assert.Null(provider.GetService<IJsonEnvelopeSerializer>());
+    Assert.Null(provider.GetService<IJsonRequestTypeRegistry>());
+  }
+
+  [Fact]
+  public void AddResultSerialization_SerializesResultWithBuiltInErrors()
+  {
+    // Arrange
+    var services = new ServiceCollection();
+    services.AddResultSerialization();
+    var provider = services.BuildServiceProvider();
+
+    var options = provider.GetRequiredService<FadiPhorJsonOptions>().SerializerOptions;
+    var failure = new ValidationFailure([new ValidationIssue("Email", "Required")]);
+    Result<int> result = failure;
+
+    // Act
+    var json = JsonSerializer.Serialize(result, options);
+    var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
+
+    // Assert
+    Assert.Contains("\"$type\":\"ValidationFailure\"", json);
+    Assert.NotNull(deserialized);
+    var f = Assert.IsType<Failure<int>>(deserialized);
+    Assert.IsType<ValidationFailure>(f.Error);
+  }
+
+  [Fact]
+  public void AddResultSerialization_WithAssemblies_DiscoversResolvers()
+  {
+    // Arrange
+    var services = new ServiceCollection();
+
+    // Act – scan the test assembly which contains ProtocolTestErrorResolver
+    services.AddResultSerialization([typeof(ProtocolTests).Assembly]);
+    var provider = services.BuildServiceProvider();
+
+    var options = provider.GetRequiredService<FadiPhorJsonOptions>().SerializerOptions;
+    Result<int> result = new ProtocolTestError("test_code");
+
+    // Act
+    var json = JsonSerializer.Serialize(result, options);
+    var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
+
+    // Assert
+    Assert.Contains("\"$type\":\"ProtocolTestError\"", json);
+    Assert.NotNull(deserialized);
+    var f = Assert.IsType<Failure<int>>(deserialized);
+    Assert.IsType<ProtocolTestError>(f.Error);
+  }
+
+  [Fact]
+  public void AddResultSerialization_SuccessRoundTrip()
+  {
+    // Arrange
+    var services = new ServiceCollection();
+    services.AddResultSerialization();
+    var provider = services.BuildServiceProvider();
+
+    var options = provider.GetRequiredService<FadiPhorJsonOptions>().SerializerOptions;
+    var result = ResultFactory.Success(42);
+
+    // Act
+    var json = JsonSerializer.Serialize(result, options);
+    var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
+
+    // Assert
+    Assert.Contains("\"kind\":\"Success\"", json);
+    Assert.Contains("\"value\":42", json);
+    Assert.NotNull(deserialized);
+    Assert.IsType<Success<int>>(deserialized);
+  }
+
+  #endregion
 }

@@ -8,11 +8,94 @@ using System.Text.Json;
 namespace FadiPhor.Result.Serialization.Json;
 
 /// <summary>
-/// Provides a unified entry point for registering the FadiPhor.Result JSON RPC protocol
-/// infrastructure into a dependency injection container.
+/// Provides extension methods for registering FadiPhor.Result JSON serialization
+/// and protocol infrastructure into a dependency injection container.
 /// </summary>
 public static class FadiPhorResultJsonExtensions
 {
+  /// <summary>
+  /// Registers <see cref="FadiPhorJsonOptions"/> with Result serialization support
+  /// and auto-discovers <see cref="IErrorPolymorphicResolver"/> implementations
+  /// from the specified assemblies.
+  /// </summary>
+  /// <param name="services">The service collection to register into.</param>
+  /// <param name="assemblies">
+  /// Assemblies to scan for <see cref="IErrorPolymorphicResolver"/> implementations.
+  /// </param>
+  /// <returns>The service collection for fluent chaining.</returns>
+  /// <remarks>
+  /// <para>This is the middle-tier registration that provides:</para>
+  /// <list type="bullet">
+  /// <item>Error polymorphic resolvers (discovered from provided assemblies)</item>
+  /// <item><see cref="FadiPhorJsonOptions"/> with Result serialization support</item>
+  /// </list>
+  /// <para>
+  /// Use this when you need DI-managed serialization without the full
+  /// Transport layer (envelope serializer, request type registry).
+  /// For the full protocol, use <see cref="AddFadiPhorResultProtocol"/> instead.
+  /// </para>
+  /// <para>
+  /// The library builds and owns its own <see cref="JsonSerializerOptions"/> instance,
+  /// exposed through <see cref="FadiPhorJsonOptions"/> so it never collides with
+  /// options the consumer may register independently.
+  /// </para>
+  /// </remarks>
+  public static IServiceCollection AddResultSerialization(
+    this IServiceCollection services,
+    IEnumerable<Assembly> assemblies)
+  {
+    var assemblyList = assemblies.ToList();
+
+    // 1. Discover and register IErrorPolymorphicResolver implementations from assemblies
+    var resolverTypes = assemblyList
+      .SelectMany(a => a.GetExportedTypes())
+      .Where(t => !t.IsAbstract && !t.IsInterface
+        && typeof(IErrorPolymorphicResolver).IsAssignableFrom(t));
+
+    foreach (var resolverType in resolverTypes)
+      services.AddSingleton(typeof(IErrorPolymorphicResolver), resolverType);
+
+    // 2. Build protocol-owned JsonSerializerOptions using DI-resolved resolvers
+    services.AddSingleton(sp =>
+    {
+      var resolvers = sp.GetServices<IErrorPolymorphicResolver>();
+
+      var options = new JsonSerializerOptions
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+      };
+      options.AddResultSerialization(resolvers);
+
+      return new FadiPhorJsonOptions(options);
+    });
+
+    return services;
+  }
+
+  /// <summary>
+  /// Registers <see cref="FadiPhorJsonOptions"/> with Result serialization support
+  /// using only the built-in error types.
+  /// </summary>
+  /// <param name="services">The service collection to register into.</param>
+  /// <returns>The service collection for fluent chaining.</returns>
+  /// <remarks>
+  /// <para>
+  /// Use this overload when you have no custom <see cref="IErrorPolymorphicResolver"/>
+  /// implementations and only need the built-in error types
+  /// (e.g. ValidationFailure, NotFoundError).
+  /// </para>
+  /// <para>
+  /// For assembly scanning of custom resolvers, use
+  /// <see cref="AddResultSerialization(IServiceCollection, IEnumerable{Assembly})"/>.
+  /// For the full protocol, use <see cref="AddFadiPhorResultProtocol"/> instead.
+  /// </para>
+  /// </remarks>
+  public static IServiceCollection AddResultSerialization(
+    this IServiceCollection services)
+  {
+    return services.AddResultSerialization([]);
+  }
+
   /// <summary>
   /// Registers all FadiPhor.Result protocol infrastructure including request type registry,
   /// polymorphic error resolvers, JSON serializer options, and envelope serialization.
@@ -58,28 +141,8 @@ public static class FadiPhorResultJsonExtensions
     var registry = new JsonRequestTypeRegistry(assemblyList, requestMarkerType);
     services.AddSingleton<IJsonRequestTypeRegistry>(registry);
 
-    // 2. Discover and register IErrorPolymorphicResolver implementations from assemblies
-    var resolverTypes = assemblyList
-      .SelectMany(a => a.GetExportedTypes())
-      .Where(t => !t.IsAbstract && !t.IsInterface
-        && typeof(IErrorPolymorphicResolver).IsAssignableFrom(t));
-
-    foreach (var resolverType in resolverTypes)
-      services.AddSingleton(typeof(IErrorPolymorphicResolver), resolverType);
-
-    // 3. Build protocol-owned JsonSerializerOptions using DI-resolved resolvers
-    services.AddSingleton(sp =>
-    {
-      var resolvers = sp.GetServices<IErrorPolymorphicResolver>();
-
-      var options = new JsonSerializerOptions
-      {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-      };
-      options.AddResultSerialization(resolvers);
-
-      return new FadiPhorJsonOptions(options);
-    });
+    // 2-3. Register serialization (resolvers + FadiPhorJsonOptions)
+    services.AddResultSerialization(assemblyList);
 
     // 4. Register IJsonEnvelopeSerializer
     services.AddSingleton<IJsonEnvelopeSerializer>(sp =>
