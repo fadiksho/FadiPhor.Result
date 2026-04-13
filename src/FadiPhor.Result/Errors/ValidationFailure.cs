@@ -21,6 +21,9 @@ public sealed record ValidationFailure(
   /// Gets a default diagnostic message indicating validation failure.
   /// </summary>
   public override string? Message => "Validation failed.";
+
+  /// <inheritdoc />
+  public override int HttpStatusCode => 422;
 }
 
 /// <summary>

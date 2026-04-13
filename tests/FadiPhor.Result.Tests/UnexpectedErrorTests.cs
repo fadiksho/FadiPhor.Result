@@ -59,6 +59,16 @@ public class UnexpectedErrorTests
   }
 
   [Fact]
+  public void UnexpectedError_ShouldHaveHttpStatusCode500()
+  {
+    // Act
+    var error = new UnexpectedError();
+
+    // Assert
+    Assert.Equal(500, error.HttpStatusCode);
+  }
+
+  [Fact]
   public void UnexpectedError_InResultMatch_ShouldWork()
   {
     // Arrange

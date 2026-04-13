@@ -113,6 +113,19 @@ public class ValidationTests
   }
 
   [Fact]
+  public void ValidationFailure_ShouldHaveHttpStatusCode422()
+  {
+    // Arrange
+    var issues = new[] { new ValidationIssue("Email", "Email is required") };
+
+    // Act
+    var failure = new ValidationFailure(issues);
+
+    // Assert
+    Assert.Equal(422, failure.HttpStatusCode);
+  }
+
+  [Fact]
   public void ValidationFailure_WithMultipleIssues_ShouldWorkCorrectly()
   {
     // Arrange

@@ -59,6 +59,16 @@ public class UnauthenticatedErrorTests
   }
 
   [Fact]
+  public void UnauthenticatedError_ShouldHaveHttpStatusCode401()
+  {
+    // Act
+    var error = new UnauthenticatedError();
+
+    // Assert
+    Assert.Equal(401, error.HttpStatusCode);
+  }
+
+  [Fact]
   public void UnauthenticatedError_InResultMatch_ShouldWork()
   {
     // Arrange

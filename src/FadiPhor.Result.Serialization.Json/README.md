@@ -118,7 +118,8 @@ Property order is fixed: `kind` first, then `value`.
   "error": {
     "$type": "NotFoundError",
     "code": "not_found",
-    "message": "User 42 was not found."
+    "message": "User 42 was not found.",
+    "httpStatusCode": 404
   }
 }
 ```
@@ -134,6 +135,7 @@ Property order: `kind` first, then `error`. The `$type` discriminator identifies
     "$type": "ValidationFailure",
     "code": "validation.failed",
     "message": "Validation failed.",
+    "httpStatusCode": 422,
     "issues": [
       {
         "identifier": "Email",
@@ -193,11 +195,13 @@ using FadiPhor.Result.Serialization.Json.Errors;
 
 public record InsufficientFundsError(decimal Required, decimal Available) : Error("insufficient_funds")
 {
+    public override int HttpStatusCode => 402;
     public override string? Message => $"Required {Required:C} but only {Available:C} available";
 }
 
 public record RateLimitedError(int RetryAfterSeconds) : Error("rate_limited")
 {
+    public override int HttpStatusCode => 429;
     public override string? Message => $"Rate limited. Retry after {RetryAfterSeconds}s";
 }
 
@@ -242,7 +246,7 @@ var deserialized = JsonSerializer.Deserialize<Result<int>>(json, options);
 // Failure round-trip
 Result<int> failure = new NotFoundError("item/7 was not found");
 var failureJson = JsonSerializer.Serialize(failure, options);
-// {"kind":"Failure","error":{"$type":"NotFoundError","code":"not_found","message":"item/7 was not found"}}
+// {"kind":"Failure","error":{"$type":"NotFoundError","code":"not_found","message":"item/7 was not found","httpStatusCode":404}}
 
 var restored = JsonSerializer.Deserialize<Result<int>>(failureJson, options);
 // restored is Failure<int> { Error = NotFoundError { Message = "item/7 was not found" } }

@@ -59,6 +59,16 @@ public class ConflictErrorTests
   }
 
   [Fact]
+  public void ConflictError_ShouldHaveHttpStatusCode409()
+  {
+    // Act
+    var error = new ConflictError();
+
+    // Assert
+    Assert.Equal(409, error.HttpStatusCode);
+  }
+
+  [Fact]
   public void ConflictError_InResultMatch_ShouldWork()
   {
     // Arrange

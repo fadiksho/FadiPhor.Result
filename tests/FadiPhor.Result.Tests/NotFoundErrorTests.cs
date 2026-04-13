@@ -59,6 +59,16 @@ public class NotFoundErrorTests
   }
 
   [Fact]
+  public void NotFoundError_ShouldHaveHttpStatusCode404()
+  {
+    // Act
+    var error = new NotFoundError();
+
+    // Assert
+    Assert.Equal(404, error.HttpStatusCode);
+  }
+
+  [Fact]
   public void NotFoundError_InResultMatch_ShouldWork()
   {
     // Arrange

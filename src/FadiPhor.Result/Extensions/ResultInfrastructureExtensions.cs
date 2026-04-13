@@ -84,4 +84,37 @@ public static class ResultInfrastructureExtensions
 
     return result.MapErrorInternal(map);
   }
+
+  /// <summary>
+  /// Returns the HTTP status code for this result.
+  /// </summary>
+  /// <param name="result">The result to inspect.</param>
+  /// <param name="successStatusCode">
+  /// The HTTP status code to return when the result is a success. Defaults to 200 (OK).
+  /// </param>
+  /// <returns>
+  /// <paramref name="successStatusCode"/> if the result is a success;
+  /// otherwise, the error's <see cref="Error.HttpStatusCode"/>.
+  /// </returns>
+  /// <remarks>
+  /// <para>Convenience method for HTTP endpoints that need to set the response status code
+  /// based on the result without manually calling <see cref="TryGetError"/>.</para>
+  /// <para><strong>Example Usage:</strong></para>
+  /// <code>
+  /// app.MapGet("/api/users/{id}", async (int id, IMediator mediator, FadiPhorJsonOptions opts) =>
+  /// {
+  ///     var result = await mediator.Send(new GetUserQuery(id));
+  ///     return Results.Json(result, opts.SerializerOptions, statusCode: result.GetHttpStatusCode());
+  /// });
+  ///
+  /// // For POST endpoints returning 201 on success:
+  /// return Results.Json(result, opts.SerializerOptions, statusCode: result.GetHttpStatusCode(201));
+  /// </code>
+  /// </remarks>
+  public static int GetHttpStatusCode(
+    this Result result,
+    int successStatusCode = 200)
+  {
+    return result.TryGetError(out var error) ? error.HttpStatusCode : successStatusCode;
+  }
 }

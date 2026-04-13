@@ -15,4 +15,7 @@ public sealed record UnexpectedError(string? Message = null)
   /// Gets the diagnostic message describing the unexpected error.
   /// </summary>
   public override string? Message { get; } = Message ?? "An unexpected error occurred.";
+
+  /// <inheritdoc />
+  public override int HttpStatusCode => 500;
 }

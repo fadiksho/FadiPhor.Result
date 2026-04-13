@@ -14,4 +14,7 @@ public sealed record NotFoundError(string? Message = null)
   /// Gets the diagnostic message describing the not-found condition.
   /// </summary>
   public override string? Message { get; } = Message ?? "The requested resource was not found.";
+
+  /// <inheritdoc />
+  public override int HttpStatusCode => 404;
 }

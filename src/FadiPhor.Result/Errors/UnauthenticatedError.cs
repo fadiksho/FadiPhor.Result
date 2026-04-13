@@ -14,4 +14,7 @@ public sealed record UnauthenticatedError(string? Message = null)
   /// Gets the diagnostic message describing the authentication failure.
   /// </summary>
   public override string? Message { get; } = Message ?? "Authentication is required.";
+
+  /// <inheritdoc />
+  public override int HttpStatusCode => 401;
 }

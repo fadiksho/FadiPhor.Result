@@ -8,7 +8,7 @@ public class BuiltInErrorSerializationTests
   [Theory]
   [MemberData(nameof(BuiltInErrorCases))]
   public void BuiltInError_RoundTrip_ShouldPreserveType(
-    Error error, string expectedType, string expectedCode, string expectedMessage)
+    Error error, string expectedType, string expectedCode, string expectedMessage, int expectedHttpStatusCode)
   {
     // Arrange
     Result<int> result = error;
@@ -23,6 +23,7 @@ public class BuiltInErrorSerializationTests
     Assert.Contains($"\"$type\":\"{expectedType}\"", json);
     Assert.Contains($"\"code\":\"{expectedCode}\"", json);
     Assert.Contains($"\"message\":\"{expectedMessage}\"", json);
+    Assert.Contains($"\"httpStatusCode\":{expectedHttpStatusCode}", json);
 
     // Assert - verify deserialization preserves concrete type
     Assert.NotNull(deserialized);
@@ -31,6 +32,7 @@ public class BuiltInErrorSerializationTests
     Assert.Equal(error.GetType(), failure.Error.GetType());
     Assert.Equal(expectedCode, failure.Error.Code);
     Assert.Equal(expectedMessage, failure.Error.Message);
+    Assert.Equal(expectedHttpStatusCode, failure.Error.HttpStatusCode);
   }
 
   [Fact]
@@ -74,13 +76,13 @@ public class BuiltInErrorSerializationTests
     Assert.IsType<ValidationFailure>(((Failure<int>)validationDeserialized!).Error);
   }
 
-  public static TheoryData<Error, string, string, string> BuiltInErrorCases => new()
+  public static TheoryData<Error, string, string, string, int> BuiltInErrorCases => new()
   {
-    { new NotFoundError(), "NotFoundError", "not_found", "The requested resource was not found." },
-    { new UnauthenticatedError(), "UnauthenticatedError", "unauthenticated", "Authentication is required." },
-    { new UnauthorizedError(), "UnauthorizedError", "unauthorized", "You do not have permission to perform this action." },
-    { new ConflictError(), "ConflictError", "conflict", "The request conflicts with the current state of the resource." },
-    { new UnexpectedError(), "UnexpectedError", "unexpected", "An unexpected error occurred." }
+    { new NotFoundError(), "NotFoundError", "not_found", "The requested resource was not found.", 404 },
+    { new UnauthenticatedError(), "UnauthenticatedError", "unauthenticated", "Authentication is required.", 401 },
+    { new UnauthorizedError(), "UnauthorizedError", "unauthorized", "You do not have permission to perform this action.", 403 },
+    { new ConflictError(), "ConflictError", "conflict", "The request conflicts with the current state of the resource.", 409 },
+    { new UnexpectedError(), "UnexpectedError", "unexpected", "An unexpected error occurred.", 500 }
   };
 
   private static JsonSerializerOptions CreateSerializerOptions()

@@ -13,20 +13,24 @@ All types are records (immutable). `T` is constrained to `notnull`.
 
 ## Error Model
 
-`Error` is an abstract record with a required `Code` (string) and an optional `Message`:
+`Error` is an abstract record with a required `Code` (string), an optional `Message`, and an abstract `HttpStatusCode`:
 
 ```csharp
 public abstract record Error(string Code)
 {
     public virtual string? Message => null;
+    public abstract int HttpStatusCode { get; }
 }
 ```
+
+Every error must declare its HTTP status code. This allows infrastructure code (middleware, filters, etc.) to map any error to the correct HTTP response without pattern-matching on concrete types.
 
 Define domain errors by inheriting from `Error`:
 
 ```csharp
 public record InsufficientFundsError(decimal Required, decimal Available) : Error("insufficient_funds")
 {
+    public override int HttpStatusCode => 402;
     public override string? Message => $"Required {Required:C} but only {Available:C} available";
 }
 ```
@@ -52,15 +56,16 @@ return new ValidationFailure(issues);
 
 ### Built-in Error Types
 
-The library ships with common error types that cover the most frequent failure scenarios. Each has a fixed `Code` and an optional custom `Message`:
+The library ships with common error types that cover the most frequent failure scenarios. Each has a fixed `Code`, `HttpStatusCode`, and an optional custom `Message`:
 
-| Type | Code | Default Message |
-|---|---|---|
-| `NotFoundError` | `"not_found"` | `"The requested resource was not found."` |
-| `UnauthenticatedError` | `"unauthenticated"` | `"Authentication is required."` |
-| `UnauthorizedError` | `"unauthorized"` | `"You do not have permission to perform this action."` |
-| `ConflictError` | `"conflict"` | `"The request conflicts with the current state of the resource."` |
-| `UnexpectedError` | `"unexpected"` | `"An unexpected error occurred."` |
+| Type | Code | HttpStatusCode | Default Message |
+|---|---|---|---|
+| `NotFoundError` | `"not_found"` | `404` | `"The requested resource was not found."` |
+| `UnauthenticatedError` | `"unauthenticated"` | `401` | `"Authentication is required."` |
+| `UnauthorizedError` | `"unauthorized"` | `403` | `"You do not have permission to perform this action."` |
+| `ConflictError` | `"conflict"` | `409` | `"The request conflicts with the current state of the resource."` |
+| `UnexpectedError` | `"unexpected"` | `500` | `"An unexpected error occurred."` |
+| `ValidationFailure` | `"validation.failed"` | `422` | `null` |
 
 Use with a default message:
 
@@ -77,7 +82,16 @@ return new UnauthorizedError("Admin role required.");
 return new ConflictError("Duplicate email address.");
 ```
 
-Pattern-match across error types in `Match`:
+Use `HttpStatusCode` for generic error-to-response mapping without pattern-matching:
+
+```csharp
+return result.Match(
+    onSuccess: user => Ok(user),
+    onFailure: error => StatusCode(error.HttpStatusCode, new { error.Code, error.Message })
+);
+```
+
+Or pattern-match across error types for fine-grained control:
 
 ```csharp
 return result.Match(
@@ -311,6 +325,18 @@ if (response is Result result)
 {
     response = result.MapError(error =>
         new WrappedError($"service.{error.Code}"));
+}
+```
+
+### GetHttpStatusCode
+
+Returns the HTTP status code for any `Result`. For successes, returns the provided `successStatusCode` (defaults to `200`). For failures, returns the error's `HttpStatusCode`:
+
+```csharp
+if (response is Result result)
+{
+    var statusCode = result.GetHttpStatusCode();            // 200 on success, error code on failure
+    var statusCode = result.GetHttpStatusCode(201);         // 201 on success (e.g. for created)
 }
 ```
 
