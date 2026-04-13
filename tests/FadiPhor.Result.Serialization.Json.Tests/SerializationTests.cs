@@ -17,6 +17,7 @@ public class SerializationTests
 
     private string? MessageInternal { get; init; }
     public override string? Message => MessageInternal;
+    public override int HttpStatusCode => 500;
   }
 
   private record ValidationError : Error
@@ -30,6 +31,7 @@ public class SerializationTests
     public string[] Fields { get; init; }
     private string? MessageInternal { get; init; }
     public override string? Message => MessageInternal;
+    public override int HttpStatusCode => 422;
   }
 
   // Test data class for complex object serialization

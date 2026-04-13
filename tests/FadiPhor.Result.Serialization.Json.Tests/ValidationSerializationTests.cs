@@ -79,7 +79,10 @@ public class ValidationSerializationTests
   }
 
   // Test custom error type
-  private record CustomTestError(string Code) : Error(Code);
+  private record CustomTestError(string Code) : Error(Code)
+  {
+    public override int HttpStatusCode => 500;
+  }
 
   private class CustomErrorResolver : IErrorPolymorphicResolver
   {

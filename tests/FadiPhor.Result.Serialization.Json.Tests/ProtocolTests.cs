@@ -21,7 +21,10 @@ public class ProtocolTests
   public record NotARequest(string Value);
 
   // Test error type and resolver for protocol integration
-  private record ProtocolTestError(string Code) : Error(Code);
+  private record ProtocolTestError(string Code) : Error(Code)
+  {
+    public override int HttpStatusCode => 500;
+  }
 
   public class ProtocolTestErrorResolver : IErrorPolymorphicResolver
   {

@@ -59,6 +59,16 @@ public class UnauthorizedErrorTests
   }
 
   [Fact]
+  public void UnauthorizedError_ShouldHaveHttpStatusCode403()
+  {
+    // Act
+    var error = new UnauthorizedError();
+
+    // Assert
+    Assert.Equal(403, error.HttpStatusCode);
+  }
+
+  [Fact]
   public void UnauthorizedError_InResultMatch_ShouldWork()
   {
     // Arrange

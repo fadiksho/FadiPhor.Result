@@ -14,4 +14,7 @@ public sealed record UnauthorizedError(string? Message = null)
   /// Gets the diagnostic message describing the authorization failure.
   /// </summary>
   public override string? Message { get; } = Message ?? "You do not have permission to perform this action.";
+
+  /// <inheritdoc />
+  public override int HttpStatusCode => 403;
 }

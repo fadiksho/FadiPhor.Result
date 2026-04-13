@@ -12,6 +12,7 @@ public class ExtensionTests
 
     private string? MessageInternal { get; init; }
     public override string? Message => MessageInternal;
+    public override int HttpStatusCode => 500;
   }
 
   private record ValidationError : Error
@@ -23,6 +24,7 @@ public class ExtensionTests
 
     private string? MessageInternal { get; init; }
     public override string? Message => MessageInternal;
+    public override int HttpStatusCode => 422;
   }
 
   #region IsSuccess and IsFailure Tests

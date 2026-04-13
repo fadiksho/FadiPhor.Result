@@ -21,6 +21,7 @@ Define a domain error and a method that returns `Result<T>`:
 ```csharp
 public record NotFoundError(string EntityId) : Error("not_found")
 {
+    public override int HttpStatusCode => 404;
     public override string? Message => $"{EntityId} not found";
 }
 
@@ -41,6 +42,13 @@ var result = GetUser(request.Id)
     .Ensure(u => u.IsActive, () => new Error("user.inactive"))
     .Bind(u => MapToDto(u));
 
+// Option 1: Use HttpStatusCode for generic mapping
+return result.Match(
+    onSuccess: dto => Ok(dto),
+    onFailure: error => StatusCode(error.HttpStatusCode, new { error.Code, error.Message })
+);
+
+// Option 2: Pattern-match for fine-grained control
 return result.Match(
     onSuccess: dto => Ok(dto),
     onFailure: error => error switch

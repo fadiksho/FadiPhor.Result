@@ -12,6 +12,7 @@ public class CoreTests
 
     private string? MessageInternal { get; init; }
     public override string? Message => MessageInternal;
+    public override int HttpStatusCode => 500;
   }
 
   [Fact]

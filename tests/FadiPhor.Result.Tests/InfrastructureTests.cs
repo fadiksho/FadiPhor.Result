@@ -5,6 +5,7 @@ public class InfrastructureTests
   private record NotFoundError(string Id) : Error("not_found")
   {
     public override string? Message => $"{Id} not found";
+    public override int HttpStatusCode => 404;
   }
 
   [Fact]
@@ -178,5 +179,59 @@ public class InfrastructureTests
     // Assert
     Assert.True(response.TryGetError(out var error));
     Assert.Equal("not_found", error.Code);
+  }
+
+  // GetHttpStatusCode
+
+  [Fact]
+  public void GetHttpStatusCode_OnSuccess_ReturnsDefault200()
+  {
+    // Arrange
+    Result result = ResultFactory.Success(42);
+
+    // Act
+    var statusCode = result.GetHttpStatusCode();
+
+    // Assert
+    Assert.Equal(200, statusCode);
+  }
+
+  [Fact]
+  public void GetHttpStatusCode_OnSuccess_ReturnsCustomSuccessStatusCode()
+  {
+    // Arrange
+    Result result = ResultFactory.Success(42);
+
+    // Act
+    var statusCode = result.GetHttpStatusCode(201);
+
+    // Assert
+    Assert.Equal(201, statusCode);
+  }
+
+  [Fact]
+  public void GetHttpStatusCode_OnFailure_ReturnsErrorHttpStatusCode()
+  {
+    // Arrange
+    Result result = ResultFactory.Failure<int>(new NotFoundError("user/1"));
+
+    // Act
+    var statusCode = result.GetHttpStatusCode();
+
+    // Assert
+    Assert.Equal(404, statusCode);
+  }
+
+  [Fact]
+  public void GetHttpStatusCode_OnFailure_IgnoresSuccessStatusCode()
+  {
+    // Arrange
+    Result result = ResultFactory.Failure<int>(new NotFoundError("user/1"));
+
+    // Act
+    var statusCode = result.GetHttpStatusCode(201);
+
+    // Assert
+    Assert.Equal(404, statusCode);
   }
 }
